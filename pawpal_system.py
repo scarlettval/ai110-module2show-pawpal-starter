@@ -21,6 +21,9 @@ class Task:
     frequency: str = "daily"           # daily or weekly
     preferred_time: str | None = None  # "HH:MM" if the owner wants it at a set time
     completed: bool = False
+    pet_name: str = ""                 # set by Pet.add_task so the plan knows whose task it is
+    start_time: str | None = None      # "HH:MM", filled in by the Scheduler
+    reason: str = ""                   # why the Scheduler picked this task
 
     def mark_complete(self) -> None:
         """Mark this task as done for today."""
@@ -41,7 +44,7 @@ class Pet:
     tasks: list[Task] = field(default_factory=list)
 
     def add_task(self, task: Task) -> None:
-        """Attach a new care task to this pet."""
+        """Attach a new care task to this pet and set its pet_name."""
         pass
 
     def remove_task(self, title: str) -> None:
@@ -74,22 +77,8 @@ class Owner:
         """Look up a pet by name."""
         pass
 
-    def get_all_tasks(self) -> list[tuple[Pet, Task]]:
-        """Return every task across all pets, paired with the pet it belongs to."""
-        pass
-
-
-@dataclass
-class ScheduledTask:
-    """A task placed at a specific time in the daily plan, with the reason it was chosen."""
-
-    task: Task
-    pet: Pet
-    start_time: str  # "HH:MM"
-    reason: str = ""
-
-    def end_time(self) -> str:
-        """Return start_time plus the task's duration as "HH:MM"."""
+    def get_all_tasks(self) -> list[Task]:
+        """Return every task across all pets."""
         pass
 
 
@@ -100,14 +89,15 @@ class Scheduler:
         self.owner = owner
         self.day_start = day_start
 
-    def generate_plan(self) -> list[ScheduledTask]:
-        """Choose and order today's tasks so they fit in the owner's available time."""
+    def generate_plan(self) -> list[Task]:
+        """Choose and order today's tasks so they fit in the owner's available time,
+        filling in each chosen task's start_time and reason."""
         pass
 
-    def sort_tasks(self, tasks: list[tuple[Pet, Task]]) -> list[tuple[Pet, Task]]:
+    def sort_tasks(self, tasks: list[Task]) -> list[Task]:
         """Order tasks by priority (high first), then by preferred time and duration."""
         pass
 
-    def explain_plan(self, plan: list[ScheduledTask]) -> str:
+    def explain_plan(self, plan: list[Task]) -> str:
         """Return a readable summary of the plan and why each task was included."""
         pass
