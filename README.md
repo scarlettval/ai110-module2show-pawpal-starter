@@ -92,30 +92,51 @@ Mochi's unfinished tasks after that
 
 ## 🧪 Testing PawPal+
 
-```bash
-# Run the full test suite:
-pytest
+Run the full test suite from the project folder:
 
-# Run with coverage:
-pytest --cov
+```bash
+python -m pytest
 ```
+
+The 18 tests in `tests/test_pawpal.py` cover:
+
+- **Basics:** marking a task complete, adding a task to a pet (and recording which pet it belongs to), rejecting an invalid priority.
+- **Sorting:** `sort_by_time()` returns tasks in chronological order with untimed tasks last; `sort_tasks()` puts high priority first.
+- **Filtering:** `filter_tasks()` by pet name, by done/not done, and both together.
+- **Recurring tasks:** completing a daily task creates a new one due the next day, a weekly one a week later, and a one-time task does not repeat. Tomorrow's task doesn't appear in today's plan.
+- **Conflict detection:** two tasks at the same time produce a warning, different times produce none, and the generated plan never places two tasks at the same time.
+- **Edge cases:** the plan stays within the owner's available minutes, completed tasks are left out, and an owner whose pets have no tasks gets an empty plan with a clear message.
+
+Tests use a fixed date instead of today's date, so they give the same result whenever they run.
 
 Sample test output:
 
 ```
-# Paste your pytest output here
+============================= test session starts =============================
+platform win32 -- Python 3.13.15, pytest-9.2.0, pluggy-1.7.0
+rootdir: C:\Users\Scarlett\codepath-ai\ai110-module2show-pawpal-starter
+configfile: pytest.ini
+testpaths: tests
+plugins: anyio-4.16.0
+collected 18 items
+
+tests\test_pawpal.py ..................                                  [100%]
+
+============================= 18 passed in 0.07s ==============================
 ```
+
+**Confidence level: ★★★★☆ (4/5).** Every core behavior (sorting, filtering, recurrence, conflicts, the time budget) has a passing test, including the main edge cases. It isn't 5 stars because conflict detection only catches exact time matches, the Streamlit UI isn't tested automatically, and some cases are still untested, such as a plan that runs past midnight or invalid time text like `"9am"`.
 
 ## 📐 Smarter Scheduling
 
-| Feature | Method(s) | Notes |
-|---------|-----------|-------|
-| Sort by time | `Scheduler.sort_by_time()` | Orders tasks by scheduled time, or preferred time if not scheduled yet. Uses `sorted()` with a `lambda` key on the `"HH:MM"` string; tasks with no time go last. |
-| Sort by priority | `Scheduler.sort_tasks()`, `Task.priority_rank()` | Used when choosing tasks: high priority first, then the owner's preferred task types, then shortest first. |
-| Filtering | `Scheduler.filter_tasks()`, `Scheduler.get_todays_tasks()` | Filter by pet name and/or done vs. not done. `get_todays_tasks()` keeps only unfinished tasks due today or earlier. |
-| Fitting the time budget | `Scheduler.generate_plan()` | Adds tasks in priority order until the owner's available minutes run out; the rest are listed as skipped by `explain_plan()`. |
-| Conflict detection | `Scheduler.detect_conflicts()` | Returns a warning message (it never crashes) for each time that two or more tasks ask for. Only exact time matches are flagged; `generate_plan()` moves overlapping tasks to the next free slot. |
-| Recurring tasks | `Task.next_occurrence()`, `Scheduler.mark_task_complete()` | Marking a `daily` or `weekly` task done adds a fresh copy due 1 day or 7 days later, using `timedelta`. `once` tasks don't repeat. |
+| Feature                 | Method(s)                                                  | Notes                                                                                                                                                                                            |
+| ----------------------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Sort by time            | `Scheduler.sort_by_time()`                                 | Orders tasks by scheduled time, or preferred time if not scheduled yet. Uses `sorted()` with a `lambda` key on the `"HH:MM"` string; tasks with no time go last.                                 |
+| Sort by priority        | `Scheduler.sort_tasks()`, `Task.priority_rank()`           | Used when choosing tasks: high priority first, then the owner's preferred task types, then shortest first.                                                                                       |
+| Filtering               | `Scheduler.filter_tasks()`, `Scheduler.get_todays_tasks()` | Filter by pet name and/or done vs. not done. `get_todays_tasks()` keeps only unfinished tasks due today or earlier.                                                                              |
+| Fitting the time budget | `Scheduler.generate_plan()`                                | Adds tasks in priority order until the owner's available minutes run out; the rest are listed as skipped by `explain_plan()`.                                                                    |
+| Conflict detection      | `Scheduler.detect_conflicts()`                             | Returns a warning message (it never crashes) for each time that two or more tasks ask for. Only exact time matches are flagged; `generate_plan()` moves overlapping tasks to the next free slot. |
+| Recurring tasks         | `Task.next_occurrence()`, `Scheduler.mark_task_complete()` | Marking a `daily` or `weekly` task done adds a fresh copy due 1 day or 7 days later, using `timedelta`. `once` tasks don't repeat.                                                               |
 
 ## 📸 Demo Walkthrough
 
@@ -127,4 +148,4 @@ Describe your app in numbered steps so a reader can follow along without watchin
 4. <!-- Describe this step -->
 5. <!-- Add more steps as needed -->
 
-**Screenshot or video** *(optional)*: <!-- Insert a screenshot or link to a demo video here -->
+**Screenshot or video** _(optional)_: <!-- Insert a screenshot or link to a demo video here -->
