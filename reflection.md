@@ -2,6 +2,12 @@
 
 ## 1. System Design
 
+User should be able to:
+
+- Add a pet
+- See daily tasks
+- Schedule a walk
+
 **a. Initial design**
 
 - Briefly describe your initial UML design.
