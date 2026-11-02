@@ -10,13 +10,21 @@ User should be able to:
 
 **a. Initial design**
 
-- Briefly describe your initial UML design.
-- What classes did you include, and what responsibilities did you assign to each?
+My initial UML has four main classes. An Owner has many Pets, each Pet has many Tasks, and a Scheduler reads the Owner's data to build the day's plan.
+
+- **Owner**: holds the owner's name, how many minutes they have for pet care today, their preferences, and their list of pets. It handles adding, removing and looking up pets, and gathers every task across all pets.
+- **Pet**: holds the pet's name, species, age and its care tasks. It handles adding and removing tasks and returns the tasks that aren't done yet.
+- **Task** (dataclass): one care activity (walk, feeding, meds, etc.) with a title, duration, priority (low/medium/high), category, frequency (daily/weekly), an optional preferred time, and a completed flag. It can mark itself complete and turn its priority into a number for sorting.
+- **Scheduler**: takes an Owner and a day start time. It sorts tasks by priority, picks the ones that fit in the owner's available time, gives them start times, and explains why each task was chosen.
 
 **b. Design changes**
 
-- Did your design change during implementation?
-- If yes, describe at least one change and why you made it.
+After asking AI to review the skeleton, I made two changes:
+
+1. **Added a `ScheduledTask` class.** At first `generate_plan()` was going to return a plain list of Tasks. The review pointed out that a Task has no start time and no reason attached, so the plan couldn't answer "when does this happen and why?", which the README requires. `ScheduledTask` wraps a Task with its pet, a start time and a reason, and `explain_plan()` uses it.
+2. **`Owner.get_all_tasks()` returns `(Pet, Task)` pairs instead of only Tasks.** A Task doesn't store which pet it belongs to, so once tasks from several pets were combined, the Scheduler couldn't tell whose walk was whose. Pairing them avoided giving Task a back-reference to Pet, which would have made the dataclasses circular.
+
+Things the review flagged that I'm leaving for implementation: deciding what happens to tasks that don't fit in the available time (drop them, or list them as skipped), and handling two tasks that share the same preferred time.
 
 ---
 

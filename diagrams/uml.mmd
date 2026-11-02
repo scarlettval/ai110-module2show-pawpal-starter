@@ -1,15 +1,58 @@
 classDiagram
-    %% Replace the placeholders below with your actual classes, attributes, methods, and relationships.
-    %% Keep this file updated so it matches your final implementation.
+    %% PawPal+ draft design (Phase 1). Keep this file updated so it matches the final implementation.
 
-    class ClassName {
-        +type attribute
-        +method() returnType
+    class Owner {
+        +str name
+        +int available_minutes
+        +list~str~ preferences
+        +list~Pet~ pets
+        +add_pet(pet: Pet) None
+        +remove_pet(name: str) None
+        +get_pet(name: str) Pet
+        +get_all_tasks() list~Task~
     }
 
-    class AnotherClass {
-        +type attribute
-        +method() returnType
+    class Pet {
+        +str name
+        +str species
+        +int age
+        +list~Task~ tasks
+        +add_task(task: Task) None
+        +remove_task(title: str) None
+        +get_pending_tasks() list~Task~
     }
 
-    ClassName --> AnotherClass : relationship
+    class Task {
+        +str title
+        +int duration_minutes
+        +str priority
+        +str category
+        +str frequency
+        +str preferred_time
+        +bool completed
+        +mark_complete() None
+        +priority_rank() int
+    }
+
+    class Scheduler {
+        +Owner owner
+        +str day_start
+        +generate_plan() list~ScheduledTask~
+        +sort_tasks(tasks: list~Task~) list~Task~
+        +explain_plan(plan: list~ScheduledTask~) str
+    }
+
+    class ScheduledTask {
+        +Task task
+        +Pet pet
+        +str start_time
+        +str reason
+        +end_time() str
+    }
+
+    Owner "1" o-- "0..*" Pet : has
+    Pet "1" o-- "0..*" Task : needs
+    Scheduler --> Owner : plans for
+    Scheduler ..> ScheduledTask : creates
+    ScheduledTask --> Task : wraps
+    ScheduledTask --> Pet : for
