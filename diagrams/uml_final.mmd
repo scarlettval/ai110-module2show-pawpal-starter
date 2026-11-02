@@ -1,0 +1,66 @@
+classDiagram
+    %% PawPal+ final design: matches pawpal_system.py after Phase 4.
+    %% Added since the Phase 1 draft (diagrams/uml.mmd): Task.due_date, Task.next_occurrence(),
+    %% Scheduler.today, get_todays_tasks(), filter_tasks(), sort_by_time(), mark_task_complete(),
+    %% detect_conflicts(), and the Scheduler-to-Task and Task-to-Task links.
+
+    class Owner {
+        <<dataclass>>
+        +str name
+        +int available_minutes
+        +list~str~ preferences
+        +list~Pet~ pets
+        +add_pet(pet: Pet) None
+        +remove_pet(name: str) None
+        +get_pet(name: str) Pet
+        +get_all_tasks() list~Task~
+    }
+
+    class Pet {
+        <<dataclass>>
+        +str name
+        +str species
+        +int age
+        +list~Task~ tasks
+        +add_task(task: Task) None
+        +remove_task(title: str) None
+        +get_pending_tasks() list~Task~
+    }
+
+    class Task {
+        <<dataclass>>
+        +str title
+        +int duration_minutes
+        +str priority
+        +str category
+        +str frequency
+        +str preferred_time
+        +date due_date
+        +bool completed
+        +str pet_name
+        +str start_time
+        +str reason
+        +mark_complete() None
+        +priority_rank() int
+        +next_occurrence() Task
+    }
+
+    class Scheduler {
+        +Owner owner
+        +str day_start
+        +date today
+        +get_todays_tasks() list~Task~
+        +filter_tasks(pet_name, completed) list~Task~
+        +sort_by_time(tasks) list~Task~
+        +sort_tasks(tasks) list~Task~
+        +mark_task_complete(task: Task) Task
+        +detect_conflicts(tasks) list~str~
+        +generate_plan() list~Task~
+        +explain_plan(plan) str
+    }
+
+    Owner "1" o-- "0..*" Pet : has
+    Pet "1" o-- "0..*" Task : needs
+    Scheduler --> Owner : plans for
+    Scheduler ..> Task : sorts, filters, schedules
+    Task ..> Task : next_occurrence() creates

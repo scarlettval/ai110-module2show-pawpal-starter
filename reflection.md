@@ -32,8 +32,15 @@ Things the review flagged that I'm leaving for implementation: deciding what hap
 
 **a. Constraints and priorities**
 
-- What constraints does your scheduler consider (for example: time, priority, preferences)?
-- How did you decide which constraints mattered most?
+The scheduler considers five things:
+
+1. **Available time:** the owner's minutes for the day. This is a hard limit; tasks that don't fit are skipped and listed.
+2. **Priority:** high, medium or low. Tasks are chosen in priority order, so a low-priority task never pushes out a high-priority one.
+3. **Owner preferences:** task types the owner cares most about (for example walks) win ties between tasks of the same priority.
+4. **Preferred time:** a task can ask for a set time. It gets that time if it's free, or the earliest free slot after it.
+5. **Due date and completion:** only unfinished tasks due today (or overdue) are planned.
+
+I decided time and priority mattered most because a busy owner's real problem is "I can't do everything today, so what matters?" Missing meds is worse than missing a brushing session, so priority decides _what_ gets done, and preferred times only decide _when_. Preferences are a tie-breaker because they're about taste, not the pet's health. Shorter tasks come before longer ones of equal priority, so more tasks fit in the day.
 
 **b. Tradeoffs**
 
@@ -47,13 +54,27 @@ This is reasonable for a pet owner because overlaps don't get lost. When `genera
 
 **a. How you used AI**
 
-- How did you use AI tools during this project (for example: design brainstorming, debugging, refactoring)?
-- What kinds of prompts or questions were most helpful?
+I used Claude Code as an agent in every phase: brainstorming the four classes and drafting the Mermaid UML, generating the class skeleton, implementing the scheduling logic, writing the demo script and tests, wiring the Streamlit UI, and drafting documentation. It could edit several files at once and run commands itself (`python main.py`, `python -m pytest`, and the Streamlit app in a browser), so it checked its own work instead of just handing me code.
+
+The most helpful prompts were pasting the assignment's step-by-step instructions for a phase and asking it to do that phase, then asking direct "why" questions about the result, such as whether the diagram had unnecessary relationships, whether "Mermaid.js" meant a JavaScript file, and why "Jordan" was pre-filled in the app.
 
 **b. Judgment and verification**
 
-- Describe one moment where you did not accept an AI suggestion as-is.
-- How did you evaluate or verify what the AI suggested?
+The clearest moment was the UML in Phase 1. The AI's first design had a fifth class, `ScheduledTask`, to hold each task's start time and reason. When I asked whether the diagram had unnecessary complexity, it said that class added three of the six relationships. I chose to keep only four classes and put `start_time` and `reason` on `Task` instead, because I wanted the design as simple as possible (as per instructions from the assignment and avoid unnecessary complexity).
+
+I also pushed back on scope: in Phase 2 the AI implemented more than needed, so I explicitly asked it to keep the work matched to the assignment. And I didn't let it push to GitHub until I had reviewed the changes and reflection myself.
+
+To verify the AI's work, I relied on running things, not just reading them:
+
+- The demo output in `main.py` showed a 30-minute gap in the first schedule, which led to letting flexible tasks fill gaps between timed tasks.
+- When one of the 18 tests failed, the question was whether the bug was in the test or the logic. The scheduler was right (equal-priority tasks go shortest first), and the test's expectation was wrong.
+- Testing the Streamlit app found a real bug: "Mark done" marked a _copy_ of the task, because Streamlit can return a copy of an object chosen in a dropdown. The fix was to select tasks by their position in the list.
+
+**c. AI strategy**
+
+- **Most effective features:** editing several files in one step (for example `pawpal_system.py`, `main.py` and the README together), and the AI running the code, tests and app itself so problems showed up right away. Then I would test the app and note of any inconsistencies.
+- **A suggestion I modified:** replacing the `ScheduledTask` class with two fields on `Task` (described above) to keep the design at four classes.
+- **Chat sessions:** the assignment suggests a separate chat session per phase. I did most phases in one long session instead. That kept context, since the AI remembered the four-class decision when writing later code, but it also meant I had to be clear about where each phase started and stopped. Next time I would start a fresh session for planning-heavy phases like algorithms and testing, so the AI's suggestions aren't based on earlier code.
 
 ---
 
@@ -61,13 +82,15 @@ This is reasonable for a pet owner because overlaps don't get lost. When `genera
 
 **a. What you tested**
 
-- What behaviors did you test?
-- Why were these tests important?
+The 18 tests in `tests/test_pawpal.py` cover sorting by time and by priority, filtering by pet and status, daily/weekly/one-time recurrence, conflict detection, staying within the time budget, leaving out completed tasks, and edge cases like pets with no tasks and two tasks at the same time.
+
+These matter because they are the promises the app makes to a pet owner: the most important tasks get done, nothing is double-booked, and a daily task doesn't silently disappear after you finish it. The tests use a fixed date, so recurrence results don't change depending on the day they run.
 
 **b. Confidence**
 
-- How confident are you that your scheduler works correctly?
-- What edge cases would you test next if you had more time?
+About 4 out of 5. Every core behavior has a passing test, and I also checked the app by hand in the browser. I'm not at 5 because conflict detection only catches exact time matches, and the Streamlit UI has no automated tests (the "Mark done" bug was only found by trying the app).
+
+Next I would test: a plan that runs past midnight, invalid time text like `"9am"`, a task longer than the whole time budget, three or more tasks at the same time, and completing an overdue weekly task (its next copy could already be in the past).
 
 ---
 
@@ -75,12 +98,15 @@ This is reasonable for a pet owner because overlaps don't get lost. When `genera
 
 **a. What went well**
 
-- What part of this project are you most satisfied with?
+I'm most satisfied that the design stayed simple. It started as four classes and ended as the same four classes. All the "smart" features (sorting, filtering, recurrence, conflicts) fit into the existing `Task` and `Scheduler` without new classes, and every scheduled task explains itself with a reason.
 
 **b. What you would improve**
 
-- If you had another iteration, what would you improve or redesign?
+- Save the owner's pets and tasks to a file, so they survive a page refresh (right now they live only in `st.session_state`).
+- Let users edit and delete tasks in the app, not just add them and mark them done.
+- Detect overlapping durations as conflicts, not just exact time matches.
+- Add automated tests for the Streamlit UI.
 
 **c. Key takeaway**
 
-- What is one important thing you learned about designing systems or working with AI on this project?
+Being the "lead architect" means the AI can write a lot of correct code quickly, but I still have to decide what the system should be and check that it does it. The AI's first ideas were reasonable but not always what I wanted, like the extra `ScheduledTask` class. The most valuable things I did were asking "is this more complex than it needs to be?", keeping each phase to its actual scope, and insisting on running the code and tests rather than trusting that it looked right.

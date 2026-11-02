@@ -1,26 +1,26 @@
-# PawPal+ (Module 2 Project)
+# 🐾 PawPal+ (Module 2 Project)
 
-You are building **PawPal+**, a Streamlit app that helps a pet owner plan care tasks for their pet.
+**PawPal+** is a Streamlit app that helps a busy pet owner stay consistent with pet care. You enter your pets and their care tasks (walks, feeding, meds, enrichment, grooming), say how much time you have today, and PawPal+ builds a daily plan, explaining why each task was picked and when it happens.
 
-## Scenario
+## ✨ Features
 
-A busy pet owner needs help staying consistent with pet care. They want an assistant that can:
+- **Owner and pet profiles:** one owner, any number of pets, each with its own list of care tasks.
+- **Priority-based planning:** tasks are chosen high priority first, then by the task types you care most about, then shortest first, until your available minutes run out. Tasks that don't fit are listed as skipped.
+- **Preferred times:** a task can ask for a set time (like meds at 09:00). Tasks without one fill the gaps between timed tasks.
+- **Sorting by time:** task lists are shown in time-of-day order, with "any time" tasks last.
+- **Filtering:** view tasks for one pet or all pets, and only to-do, only done, or everything.
+- **Conflict warnings:** if two tasks ask for the same time, PawPal+ shows a warning instead of failing, and the plan moves one of them to the next free slot.
+- **Daily and weekly recurrence:** marking a daily task done creates tomorrow's copy; a weekly task comes back 7 days later. One-time tasks don't repeat.
+- **Explained plans:** every scheduled task has a short reason, like "high priority, at your preferred time 09:00" or "wanted 09:00, moved to the earliest free slot".
 
-- Track pet care tasks (walks, feeding, meds, enrichment, grooming, etc.)
-- Consider constraints (time available, priority, owner preferences)
-- Produce a daily plan and explain why it chose that plan
+## 🏗️ Architecture
 
-Your job is to design the system first (UML), then implement the logic in Python, then connect it to the Streamlit UI.
+The logic lives in [`pawpal_system.py`](pawpal_system.py) as four classes: `Owner` has `Pet`s, each `Pet` has `Task`s, and the `Scheduler` reads everything through the `Owner` to sort, filter and plan. The Streamlit UI is in [`app.py`](app.py) and a terminal demo is in [`main.py`](main.py).
 
-## What you will build
+- Final class diagram: [`diagrams/uml_final.mmd`](diagrams/uml_final.mmd)
+- Phase 1 draft, for comparison: [`diagrams/uml.mmd`](diagrams/uml.mmd)
 
-Your final app should:
-
-- Let a user enter basic owner + pet info
-- Let a user add/edit tasks (duration + priority at minimum)
-- Generate a daily schedule/plan based on constraints and priorities
-- Display the plan clearly (and ideally explain the reasoning)
-- Include tests for the most important scheduling behaviors
+Paste either file into the [Mermaid Live Editor](https://mermaid.live/) to see the diagram.
 
 ## Getting started
 
@@ -32,15 +32,17 @@ source .venv/bin/activate  # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-### Suggested workflow
+### Run the app
 
-1. Read the scenario carefully and identify requirements and edge cases.
-2. Draft a UML diagram (classes, attributes, methods, relationships).
-3. Convert UML into Python class stubs (no logic yet).
-4. Implement scheduling logic in small increments.
-5. Add tests to verify key behaviors.
-6. Connect your logic to the Streamlit UI in `app.py`.
-7. Refine UML so it matches what you actually built.
+```bash
+streamlit run app.py
+```
+
+### Run the terminal demo
+
+```bash
+python main.py
+```
 
 ## 🖥️ Sample Output
 
@@ -140,12 +142,65 @@ tests\test_pawpal.py ..................                                  [100%]
 
 ## 📸 Demo Walkthrough
 
-Describe your app in numbered steps so a reader can follow along without watching a video:
+### What you can do in the app
 
-1. <!-- Describe this step -->
-2. <!-- Describe this step -->
-3. <!-- Describe this step -->
-4. <!-- Describe this step -->
-5. <!-- Add more steps as needed -->
+The page has four sections, top to bottom:
 
-**Screenshot or video** _(optional)_: <!-- Insert a screenshot or link to a demo video here -->
+- **Owner:** set your name, how many minutes you have for pet care today, and task types you care most about (e.g., walks and meds).
+- **Pets:** add a pet with a name, species and age. Duplicate or empty names are refused with an error message. A table lists your pets and how many tasks each has.
+- **Tasks:** add a task for a pet with a title, duration, priority, type, frequency (once, daily, weekly) and an optional preferred time. Below the form:
+  - a yellow **conflict warning** appears if two tasks ask for the same time;
+  - **"Your tasks"** shows a table sorted by time, with filters for which pet and to do / done / all;
+  - **"Mark a task done"** completes a task; for a repeating task, a green message says when the next one is due.
+- **Today's Schedule:** pick when your day starts and click **Generate schedule**. You get a green summary ("Scheduled 3 task(s) using 45 of 120 minutes"), the plan as a table with a "why" column, a warning listing any tasks that didn't fit, and a text explanation you can expand.
+
+### Example workflow
+
+1. Start the app with `streamlit run app.py`. Set **Minutes available** to 120 and pick **walk** as a task type you care about.
+2. Add two pets: **Mochi** (dog) and **Luna** (cat).
+3. Add tasks:
+   - Mochi: "Morning walk", 30 min, high, daily, at 07:30
+   - Mochi: "Breakfast", 10 min, high, daily, at 09:00
+   - Luna: "Give meds", 5 min, high, daily, at 09:00
+   - Mochi: "Long hike", 200 min, low, once, any time
+4. A warning appears right away: _Conflict at 09:00: Breakfast (Mochi) and Give meds (Luna) are set for the same time._ The task table lists the walk first (07:30), then the two 09:00 tasks, then the hike (any time).
+5. Set the filter to **Luna** to see only Give meds, then back to **All pets**.
+6. Mark **Morning walk** done. The message says the next one is due tomorrow, and with the filter on **All**, the table shows today's walk as done and a new walk due tomorrow.
+7. Click **Generate schedule**. The plan has Give meds at 09:00 and Breakfast at 09:05 ("wanted 09:00, moved to the earliest free slot"). The walk isn't there because it's done, and a warning says the 200-minute hike doesn't fit in the remaining time.
+
+### Scheduler behaviors shown
+
+| Behavior                                     | Where you see it                                                         |
+| -------------------------------------------- | ------------------------------------------------------------------------ |
+| Sorting by time (`sort_by_time`)             | "Your tasks" table and the "Mark a task done" dropdown are in time order |
+| Filtering (`filter_tasks`)                   | "Show pet" and "Show" controls above the task table                      |
+| Conflict warnings (`detect_conflicts`)       | Yellow warning in the Tasks section; the moved task's "why" says so      |
+| Recurrence (`mark_task_complete`)            | Marking a daily task done adds a copy due tomorrow                       |
+| Time budget and priorities (`generate_plan`) | Low-priority tasks that don't fit are listed as "Not enough time today"  |
+
+### Sample CLI output
+
+The terminal demo (`python main.py`) runs the same features without the UI. This is the part that shows the conflict warning and the schedule; the full output is in the Sample Output section above.
+
+```
+Conflict check
+------------------------------------------------------------
+  WARNING: Conflict at 09:00: Breakfast (Mochi) and Give meds (Luna) are set for the same time.
+
+============================================================
+                      Today's Schedule
+============================================================
+Daily plan for Jordan (80 of 90 min used):
+  08:00 - Morning walk for Mochi (30 min) - high priority, you prioritize walk, at your preferred time 08:00
+  08:30 - Brush coat for Mochi (15 min) - low priority
+  09:00 - Give meds for Luna (5 min) - high priority, at your preferred time 09:00
+  09:05 - Breakfast for Mochi (10 min) - high priority, wanted 09:00, moved to the earliest free slot
+  17:30 - Play with wand toy for Luna (20 min) - medium priority, at your preferred time 17:30
+Skipped (not enough time): Long hike (Mochi)
+============================================================
+
+Recurring tasks: marking Morning walk and Brush coat done
+------------------------------------------------------------
+  Morning walk (daily) done -> next one due 2026-11-02
+  Brush coat (weekly) done -> next one due 2026-11-08
+```
