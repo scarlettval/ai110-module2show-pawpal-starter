@@ -30,6 +30,9 @@ classDiagram
         +str frequency
         +str preferred_time
         +bool completed
+        +str pet_name
+        +str start_time
+        +str reason
         +mark_complete() None
         +priority_rank() int
     }
@@ -37,22 +40,11 @@ classDiagram
     class Scheduler {
         +Owner owner
         +str day_start
-        +generate_plan() list~ScheduledTask~
+        +generate_plan() list~Task~
         +sort_tasks(tasks: list~Task~) list~Task~
-        +explain_plan(plan: list~ScheduledTask~) str
-    }
-
-    class ScheduledTask {
-        +Task task
-        +Pet pet
-        +str start_time
-        +str reason
-        +end_time() str
+        +explain_plan(plan: list~Task~) str
     }
 
     Owner "1" o-- "0..*" Pet : has
     Pet "1" o-- "0..*" Task : needs
     Scheduler --> Owner : plans for
-    Scheduler ..> ScheduledTask : creates
-    ScheduledTask --> Task : wraps
-    ScheduledTask --> Pet : for

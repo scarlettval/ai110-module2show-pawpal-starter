@@ -21,8 +21,8 @@ My initial UML has four main classes. An Owner has many Pets, each Pet has many 
 
 After asking AI to review the skeleton, I made two changes:
 
-1. **Added a `ScheduledTask` class.** At first `generate_plan()` was going to return a plain list of Tasks. The review pointed out that a Task has no start time and no reason attached, so the plan couldn't answer "when does this happen and why?", which the README requires. `ScheduledTask` wraps a Task with its pet, a start time and a reason, and `explain_plan()` uses it.
-2. **`Owner.get_all_tasks()` returns `(Pet, Task)` pairs instead of only Tasks.** A Task doesn't store which pet it belongs to, so once tasks from several pets were combined, the Scheduler couldn't tell whose walk was whose. Pairing them avoided giving Task a back-reference to Pet, which would have made the dataclasses circular.
+1. **Task now has `start_time` and `reason` fields.** The review pointed out that a Task had no start time or reason, so the plan couldn't answer "when does this happen and why?", which the README requires. The AI first suggested a separate `ScheduledTask` class for this, but that added a fifth class and three more relationships. I wanted the design as simple as possible, so I kept four classes and put the two fields on Task instead. The Scheduler fills them in when it builds the plan.
+2. **Task now has a `pet_name` field.** A Task didn't record which pet it belongs to, so once tasks from several pets were combined, the Scheduler couldn't tell whose walk was whose. `Pet.add_task()` sets it. I used the pet's name instead of a reference to the Pet object so the dataclasses don't point at each other.
 
 Things the review flagged that I'm leaving for implementation: deciding what happens to tasks that don't fit in the available time (drop them, or list them as skipped), and handling two tasks that share the same preferred time.
 
