@@ -47,17 +47,47 @@ pip install -r requirements.txt
 Output from running `python main.py` (one owner with 90 minutes, two pets, six tasks):
 
 ```
+All tasks, sorted by preferred time
+------------------------------------------------------------
+     08:00  Morning walk         Mochi  [to do]
+     09:00  Breakfast            Mochi  [to do]
+     09:00  Give meds            Luna   [to do]
+     17:30  Play with wand toy   Luna   [to do]
+  any time  Brush coat           Mochi  [to do]
+  any time  Long hike            Mochi  [to do]
+
+Only Luna's tasks, sorted by time
+------------------------------------------------------------
+     09:00  Give meds            Luna   [to do]
+     17:30  Play with wand toy   Luna   [to do]
+
+Conflict check
+------------------------------------------------------------
+  WARNING: Conflict at 09:00: Breakfast (Mochi) and Give meds (Luna) are set for the same time.
+
 ============================================================
                       Today's Schedule
 ============================================================
 Daily plan for Jordan (80 of 90 min used):
   08:00 - Morning walk for Mochi (30 min) - high priority, you prioritize walk, at your preferred time 08:00
-  08:30 - Breakfast for Mochi (10 min) - high priority
-  08:40 - Play with wand toy for Luna (20 min) - medium priority
+  08:30 - Brush coat for Mochi (15 min) - low priority
   09:00 - Give meds for Luna (5 min) - high priority, at your preferred time 09:00
-  09:05 - Brush coat for Mochi (15 min) - low priority
+  09:05 - Breakfast for Mochi (10 min) - high priority, wanted 09:00, moved to the earliest free slot
+  17:30 - Play with wand toy for Luna (20 min) - medium priority, at your preferred time 17:30
 Skipped (not enough time): Long hike (Mochi)
 ============================================================
+
+Recurring tasks: marking Morning walk and Brush coat done
+------------------------------------------------------------
+  Morning walk (daily) done -> next one due 2026-11-02
+  Brush coat (weekly) done -> next one due 2026-11-08
+
+Mochi's unfinished tasks after that
+------------------------------------------------------------
+  Breakfast            due 2026-11-01
+  Long hike            due 2026-11-01
+  Morning walk         due 2026-11-02
+  Brush coat           due 2026-11-08
 ```
 
 ## 🧪 Testing PawPal+
@@ -78,14 +108,14 @@ Sample test output:
 
 ## 📐 Smarter Scheduling
 
-> Fill in once you've implemented scheduling logic.
-
 | Feature | Method(s) | Notes |
 |---------|-----------|-------|
-| Task sorting | | e.g., by priority, duration |
-| Filtering | | e.g., skip tasks if time runs out |
-| Conflict handling | | e.g., overlapping time slots |
-| Recurring tasks | | e.g., daily vs. weekly |
+| Sort by time | `Scheduler.sort_by_time()` | Orders tasks by scheduled time, or preferred time if not scheduled yet. Uses `sorted()` with a `lambda` key on the `"HH:MM"` string; tasks with no time go last. |
+| Sort by priority | `Scheduler.sort_tasks()`, `Task.priority_rank()` | Used when choosing tasks: high priority first, then the owner's preferred task types, then shortest first. |
+| Filtering | `Scheduler.filter_tasks()`, `Scheduler.get_todays_tasks()` | Filter by pet name and/or done vs. not done. `get_todays_tasks()` keeps only unfinished tasks due today or earlier. |
+| Fitting the time budget | `Scheduler.generate_plan()` | Adds tasks in priority order until the owner's available minutes run out; the rest are listed as skipped by `explain_plan()`. |
+| Conflict detection | `Scheduler.detect_conflicts()` | Returns a warning message (it never crashes) for each time that two or more tasks ask for. Only exact time matches are flagged; `generate_plan()` moves overlapping tasks to the next free slot. |
+| Recurring tasks | `Task.next_occurrence()`, `Scheduler.mark_task_complete()` | Marking a `daily` or `weekly` task done adds a fresh copy due 1 day or 7 days later, using `timedelta`. `once` tasks don't repeat. |
 
 ## 📸 Demo Walkthrough
 

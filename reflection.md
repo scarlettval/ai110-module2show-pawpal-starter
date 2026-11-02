@@ -37,8 +37,9 @@ Things the review flagged that I'm leaving for implementation: deciding what hap
 
 **b. Tradeoffs**
 
-- Describe one tradeoff your scheduler makes.
-- Why is that tradeoff reasonable for this scenario?
+`detect_conflicts()` only warns when two tasks ask for the exact same preferred time (for example, Breakfast and Give meds both at 09:00). It does not check whether durations overlap, so a 30-minute walk at 08:00 and meds at 08:15 don't trigger a warning.
+
+This is reasonable for a pet owner because overlaps don't get lost. When `generate_plan()` builds the day, it never lets two tasks run at once: a task whose preferred time is already taken is moved to the next free slot, and its reason says "moved to the earliest free slot". So the warning covers the case most likely to be a mistake (two things booked at the same minute), and the plan itself handles the rest. Exact matching is also simple: one pass that groups tasks by time, instead of comparing every pair of tasks.
 
 ---
 

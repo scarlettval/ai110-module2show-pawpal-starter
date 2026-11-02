@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from collections import defaultdict
+from dataclasses import dataclass, field, replace
+from datetime import date, timedelta
 
 PRIORITY_LEVELS = ("low", "medium", "high")
+FREQUENCIES = ("once", "daily", "weekly")
+REPEAT_EVERY = {"daily": timedelta(days=1), "weekly": timedelta(weeks=1)}
 
 
 def to_minutes(hhmm: str) -> int:
@@ -26,17 +30,20 @@ class Task:
     duration_minutes: int
     priority: str = "medium"           # one of PRIORITY_LEVELS
     category: str = "general"          # walk, feeding, meds, enrichment, grooming, ...
-    frequency: str = "daily"           # daily or weekly
+    frequency: str = "daily"           # one of FREQUENCIES
     preferred_time: str | None = None  # "HH:MM" if the owner wants it at a set time
+    due_date: date = field(default_factory=date.today)
     completed: bool = False
     pet_name: str = ""                 # set by Pet.add_task so the plan knows whose task it is
     start_time: str | None = None      # "HH:MM", filled in by the Scheduler
     reason: str = ""                   # why the Scheduler picked this task
 
     def __post_init__(self) -> None:
-        """Reject an unknown priority or a non-positive duration."""
+        """Reject an unknown priority or frequency, or a non-positive duration."""
         if self.priority not in PRIORITY_LEVELS:
             raise ValueError(f"priority must be one of {PRIORITY_LEVELS}, got {self.priority!r}")
+        if self.frequency not in FREQUENCIES:
+            raise ValueError(f"frequency must be one of {FREQUENCIES}, got {self.frequency!r}")
         if self.duration_minutes <= 0:
             raise ValueError("duration_minutes must be positive")
 
@@ -47,6 +54,18 @@ class Task:
     def priority_rank(self) -> int:
         """Return a number for sorting (higher = more important)."""
         return PRIORITY_LEVELS.index(self.priority) + 1
+
+    def next_occurrence(self) -> Task | None:
+        """Return a fresh, not-done copy of this task for its next due date, or None if it doesn't repeat."""
+        if self.frequency not in REPEAT_EVERY:
+            return None
+        return replace(
+            self,
+            due_date=self.due_date + REPEAT_EVERY[self.frequency],
+            completed=False,
+            start_time=None,
+            reason="",
+        )
 
 
 @dataclass
@@ -109,14 +128,59 @@ class Owner:
 class Scheduler:
     """Builds a daily plan for an owner's pets based on time and priority."""
 
-    def __init__(self, owner: Owner, day_start: str = "08:00") -> None:
-        """Store the owner to plan for and the time the day starts ("HH:MM")."""
+    def __init__(self, owner: Owner, day_start: str = "08:00", today: date | None = None) -> None:
+        """Store the owner to plan for, the time the day starts ("HH:MM"), and the date being planned."""
         self.owner = owner
         self.day_start = day_start
+        self.today = today or date.today()
+
+    def get_todays_tasks(self) -> list[Task]:
+        """Return unfinished tasks that are due today or overdue."""
+        return [
+            task for task in self.owner.get_all_tasks()
+            if not task.completed and task.due_date <= self.today
+        ]
+
+    def filter_tasks(self, pet_name: str | None = None, completed: bool | None = None) -> list[Task]:
+        """Return all tasks, optionally only one pet's and/or only done or not-done ones."""
+        return [
+            task for task in self.owner.get_all_tasks()
+            if (pet_name is None or task.pet_name == pet_name)
+            and (completed is None or task.completed == completed)
+        ]
+
+    def sort_by_time(self, tasks: list[Task]) -> list[Task]:
+        """Order tasks by scheduled time, else preferred time; tasks with no time go last."""
+        # Zero-padded "HH:MM" strings sort correctly as text, and "24:00" is later than any real time.
+        return sorted(tasks, key=lambda t: t.start_time or t.preferred_time or "24:00")
+
+    def mark_task_complete(self, task: Task) -> Task | None:
+        """Mark a task done and, if it repeats, add its next occurrence to the same pet."""
+        task.mark_complete()
+        next_task = task.next_occurrence()
+        if next_task:
+            self.owner.get_pet(task.pet_name).add_task(next_task)
+        return next_task
+
+    def detect_conflicts(self, tasks: list[Task] | None = None) -> list[str]:
+        """Return a warning for each preferred time that more than one task asks for."""
+        if tasks is None:
+            tasks = self.get_todays_tasks()
+        by_time = defaultdict(list)
+        for task in tasks:
+            if task.preferred_time:
+                by_time[task.preferred_time].append(task)
+
+        warnings = []
+        for hhmm, clashing in sorted(by_time.items()):
+            if len(clashing) > 1:
+                names = " and ".join(f"{t.title} ({t.pet_name})" for t in clashing)
+                warnings.append(f"Conflict at {hhmm}: {names} are set for the same time.")
+        return warnings
 
     def generate_plan(self) -> list[Task]:
         """Pick tasks that fit the owner's time, give each a start_time and reason, and return them in order."""
-        pending = [task for task in self.owner.get_all_tasks() if not task.completed]
+        pending = self.get_todays_tasks()
 
         # Clear results from any earlier run so skipped tasks don't keep old times.
         for task in pending:
@@ -186,10 +250,7 @@ class Scheduler:
 
         # Compare by identity: dataclass == would treat two identical tasks as the same task.
         planned_ids = {id(task) for task in plan}
-        skipped = [
-            task for task in self.owner.get_all_tasks()
-            if not task.completed and id(task) not in planned_ids
-        ]
+        skipped = [task for task in self.get_todays_tasks() if id(task) not in planned_ids]
         if skipped:
             titles = ", ".join(f"{task.title} ({task.pet_name})" for task in skipped)
             lines.append(f"Skipped (not enough time): {titles}")
